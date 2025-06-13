@@ -1,0 +1,23 @@
+{
+  "name": "cyex-bot",
+  "version": "1.0.0",
+  "description": "Bot de Discord para el clan CYEX",
+  "main": "src/index.js",
+  "engines": {
+    "node": "18.x"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "deploy": "node src/deploy-commands.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.1",
+    "firebase": "^10.8.0",
+    "jimp": "^0.22.10"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+} 
