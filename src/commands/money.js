@@ -4,104 +4,46 @@ const Clan = require('../models/Clan');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('money')
-        .setDescription('Gestiona el dinero del clan')
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('view')
-                .setDescription('Ver el dinero total del clan'))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('add')
-                .setDescription('Añadir dinero al clan')
-                .addNumberOption(option =>
-                    option.setName('amount')
-                        .setDescription('Cantidad a añadir')
-                        .setRequired(true))
-                .addStringOption(option =>
-                    option.setName('description')
-                        .setDescription('Descripción de la transacción')
-                        .setRequired(true)))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('remove')
-                .setDescription('Quitar dinero del clan')
-                .addNumberOption(option =>
-                    option.setName('amount')
-                        .setDescription('Cantidad a quitar')
-                        .setRequired(true))
-                .addStringOption(option =>
-                    option.setName('description')
-                        .setDescription('Descripción de la transacción')
-                        .setRequired(true))),
+        .setDescription('Gestiona la tesorería del clan')
+        .addSubcommand(sub =>
+            sub.setName('add')
+                .setDescription('Añadir ingreso a la tesorería')
+                .addNumberOption(opt => opt.setName('cantidad').setDescription('Cantidad a añadir').setRequired(true))
+                .addStringOption(opt => opt.setName('descripcion').setDescription('Descripción').setRequired(true)))
+        .addSubcommand(sub =>
+            sub.setName('remove')
+                .setDescription('Registrar un gasto')
+                .addNumberOption(opt => opt.setName('cantidad').setDescription('Cantidad a quitar').setRequired(true))
+                .addStringOption(opt => opt.setName('descripcion').setDescription('Descripción').setRequired(true)))
+        .addSubcommand(sub =>
+            sub.setName('view')
+                .setDescription('Ver el estado de la tesorería')),
 
     async execute(interaction) {
-        const subcommand = interaction.options.getSubcommand();
-        const clan = await Clan.getClan();
-
-        switch (subcommand) {
-            case 'view': {
-                const embed = new EmbedBuilder()
-                    .setTitle('💰 Dinero del Clan CYEX')
-                    .setColor('#00ff00')
-                    .addFields(
-                        { name: 'Dinero Total', value: `${clan.totalMoney}€`, inline: true }
-                    );
-
-                const recentTransactions = await Clan.getRecentTransactions();
-                if (recentTransactions.length > 0) {
-                    const transactionsList = recentTransactions.map(t => 
-                        `${t.amount > 0 ? '➕' : '➖'} ${Math.abs(t.amount)}€ - ${t.description} (${t.username})`
-                    ).join('\n');
-                    
-                    embed.addFields({ name: 'Últimas Transacciones', value: transactionsList });
-                }
-
-                await interaction.reply({ embeds: [embed] });
-                break;
+        const sub = interaction.options.getSubcommand();
+        if (sub === 'add') {
+            const cantidad = interaction.options.getNumber('cantidad');
+            const descripcion = interaction.options.getString('descripcion');
+            await Clan.addTransaction(cantidad, descripcion, interaction.user.id, interaction.user.username, 'income');
+            await interaction.reply({ content: `✅ Ingreso de ${cantidad} CYEX registrado.`, ephemeral: true });
+        } else if (sub === 'remove') {
+            const cantidad = interaction.options.getNumber('cantidad');
+            const descripcion = interaction.options.getString('descripcion');
+            await Clan.addTransaction(-cantidad, descripcion, interaction.user.id, interaction.user.username, 'expense');
+            await interaction.reply({ content: `✅ Gasto de ${cantidad} CYEX registrado.`, ephemeral: true });
+        } else if (sub === 'view') {
+            const clan = await Clan.getClan();
+            const embed = new EmbedBuilder()
+                .setTitle('💰 Tesorería del Clan')
+                .setColor('#00ff00')
+                .addFields(
+                    { name: 'Dinero Total', value: `${clan.totalMoney} CYEX`, inline: true }
+                );
+            const trans = await Clan.getRecentTransactions();
+            if (trans.length > 0) {
+                embed.addFields({ name: 'Últimas transacciones', value: trans.map(t => `${t.type === 'income' ? '➕' : '➖'} ${Math.abs(t.amount)} - ${t.description} (${t.username})`).join('\n') });
             }
-
-            case 'add': {
-                const amount = interaction.options.getNumber('amount');
-                const description = interaction.options.getString('description');
-
-                await Clan.updateMoney(amount, description, interaction.user.id, interaction.user.username);
-
-                const embed = new EmbedBuilder()
-                    .setTitle('✅ Dinero Añadido')
-                    .setColor('#00ff00')
-                    .addFields(
-                        { name: 'Cantidad', value: `${amount}€`, inline: true },
-                        { name: 'Descripción', value: description, inline: true }
-                    );
-
-                await interaction.reply({ embeds: [embed] });
-                break;
-            }
-
-            case 'remove': {
-                const amount = -interaction.options.getNumber('amount');
-                const description = interaction.options.getString('description');
-
-                if (clan.totalMoney < Math.abs(amount)) {
-                    return interaction.reply({
-                        content: '❌ No hay suficiente dinero en el clan',
-                        ephemeral: true
-                    });
-                }
-
-                await Clan.updateMoney(amount, description, interaction.user.id, interaction.user.username);
-
-                const embed = new EmbedBuilder()
-                    .setTitle('✅ Dinero Retirado')
-                    .setColor('#ff0000')
-                    .addFields(
-                        { name: 'Cantidad', value: `${Math.abs(amount)}€`, inline: true },
-                        { name: 'Descripción', value: description, inline: true }
-                    );
-
-                await interaction.reply({ embeds: [embed] });
-                break;
-            }
+            await interaction.reply({ embeds: [embed] });
         }
-    },
+    }
 }; 

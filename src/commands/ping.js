@@ -22,4 +22,4 @@ module.exports = {
 
         await interaction.editReply({ content: null, embeds: [embed] });
     },
-}; 
+};

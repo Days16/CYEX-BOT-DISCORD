@@ -10,7 +10,8 @@ class Clan {
             const newClan = {
                 name: 'CYEX',
                 totalMoney: 0,
-                transactions: []
+                transactions: [],
+                contributions: []
             };
             await setDoc(clanRef, newClan);
             return newClan;
@@ -19,27 +20,47 @@ class Clan {
         return clanDoc.data();
     }
 
-    static async updateMoney(amount, description, userId, username) {
+    static async addTransaction(amount, description, userId, username, type) {
         const clan = await this.getClan();
         const newTransaction = {
             amount,
             description,
             userId,
             username,
+            type, // 'income' o 'expense'
             date: new Date().toISOString()
         };
-
         await updateDoc(doc(db, 'clans', 'CYEX'), {
             totalMoney: clan.totalMoney + amount,
             transactions: [...clan.transactions, newTransaction]
         });
-
         return newTransaction;
+    }
+
+    static async addContribution(amount, description, userId, username) {
+        const clan = await this.getClan();
+        const newContribution = {
+            amount,
+            description,
+            userId,
+            username,
+            date: new Date().toISOString()
+        };
+        await updateDoc(doc(db, 'clans', 'CYEX'), {
+            totalMoney: clan.totalMoney + amount,
+            contributions: [...clan.contributions, newContribution]
+        });
+        return newContribution;
     }
 
     static async getRecentTransactions(limit = 5) {
         const clan = await this.getClan();
         return clan.transactions.slice(-limit).reverse();
+    }
+
+    static async getRecentContributions(limit = 5) {
+        const clan = await this.getClan();
+        return clan.contributions.slice(-limit).reverse();
     }
 }
 
